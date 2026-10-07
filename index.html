@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Report Arkha Kitchen</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans pb-12">
+
+    <!-- ⚠️ PASTIKAN URL DI BAWAH INI ADALAH URL DEPLOYMENT BARU DARI APPS SCRIPT ANDA -->
+    <script>
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwgm-Kfn2I-X-yAncqRot8ll_7MiqYHDOoWyPbe5tROY79CFLQxub5mPA9TegEjDvVv/exec";
+    </script>
+
+    <!-- NOTIFIKASI MELAYANG (TOAST) -->
+    <div id="toastNotif" class="fixed top-5 right-5 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-lg text-sm font-semibold z-50 transform translate-y-[-200%] transition-all duration-300 flex items-center gap-2">
+        <span>✅</span> <span id="toastText">Catatan telah disimpan</span>
+    </div>
+
+    <!-- HALAMAN LOGIN / PASSWORD -->
+    <div id="loginScreen" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
+        <div class="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full text-center">
+            <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 font-bold text-xl">🔒</div>
+            <h2 class="text-lg font-bold text-slate-800 mb-1">Arkha Kitchen</h2>
+            <p class="text-xs text-slate-500 mb-4">Masukkan password untuk mengakses laporan</p>
+            
+            <form onsubmit="cekPassword(event)">
+                <input type="password" id="inputPassword" placeholder="Masukkan Password" class="w-full border rounded-xl p-3 text-sm text-center mb-3 focus:ring-2 focus:ring-indigo-500 outline-none" required>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl transition text-sm">Masuk Aplikasi</button>
+            </form>
+            <p id="errorMsg" class="text-xs text-rose-500 mt-2 hidden">Password salah! Coba lagi.</p>
+        </div>
+    </div>
+
+    <!-- APLIKASI UTAMA -->
+    <div id="mainApp" class="hidden">
+        <header class="bg-indigo-600 text-white p-4 shadow-md">
+            <div class="max-w-4xl mx-auto flex justify-between items-center">
+                <h1 class="text-lg font-bold">Internal Arkha Kitchen</h1>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs bg-indigo-500 px-2.5 py-1 rounded-full">Dashboard Kasir</span>
+                    <button onclick="logout()" class="text-xs bg-indigo-700 hover:bg-indigo-800 px-2 py-1 rounded transition">Keluar</button>
+                </div>
+            </div>
+        </header>
+
+        <nav class="max-w-4xl mx-auto mt-4 px-4">
+            <div class="flex flex-wrap bg-white rounded-xl shadow-sm p-1 border border-slate-200 gap-1">
+                <button onclick="switchTab('penjualan')" id="btn-penjualan" class="flex-1 py-2 text-xs md:text-sm font-semibold rounded-lg bg-indigo-600 text-white transition">Input Penjualan</button>
+                <button onclick="switchTab('pengeluaran')" id="btn-pengeluaran" class="flex-1 py-2 text-xs md:text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-100 transition">Input Pengeluaran</button>
+                <button onclick="switchTab('dashboard')" id="btn-dashboard" class="flex-1 py-2 text-xs md:text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-100 transition">Dashboard & Laporan</button>
+                <button onclick="switchTab('keseluruhan')" id="btn-keseluruhan" class="flex-1 py-2 text-xs md:text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-100 transition">Riwayat Data</button>
+            </div>
+        </nav>
+
+        <main class="max-w-4xl mx-auto mt-4 px-4">
+            <!-- INPUT PENJUALAN -->
+            <section id="tab-penjualan" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-base font-bold text-slate-700 mb-4 pb-2 border-b">Kasir Offline & Input Manual</h2>
+                <form id="formPenjualan" onsubmit="submitPenjualan(event)">
+                    
+                    <h3 class="text-sm font-bold text-indigo-600 mb-2">1. Data Pelanggan & Pengiriman</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal Transaksi</label>
+                            <input type="date" id="tglPenjualan" required class="w-full border rounded-lg p-2.5 text-sm outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Pembeli</label>
+                            <input type="text" id="pembeli" placeholder="Contoh: Budi / Umum" required class="w-full border rounded-lg p-2.5 text-sm outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">No. WhatsApp / HP</label>
+                            <input type="text" id="noHp" placeholder="08xxxxxxxx" class="w-full border rounded-lg p-2.5 text-sm outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Pengiriman</label>
+                            <select id="jenisPengiriman" class="w-full border rounded-lg p-2.5 text-sm bg-white outline-none">
+                                <option value="Pick-up">Pick-up (Ambil Sendiri)</option>
+                                <option value="Ojol">Ojol (GoFood/Grab/ShopeeFood)</option>
+                                <option value="COD">COD (Diantar)</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Alamat Lengkap (Jika Ojol/COD)</label>
+                            <input type="text" id="alamat" placeholder="Detail Alamat Pengiriman..." class="w-full border rounded-lg p-2.5 text-sm outline-none">
+                        </div>
+                    </div>
+
+                    <h3 class="text-sm font-bold text-indigo-600 mb-2">2. Daftar Menu Dipesan</h3>
+                    <div id="listMenuContainer" class="space-y-3 mb-4">
+                        <div class="menu-row grid grid-cols-1 md:grid-cols-12 gap-2 bg-slate-50 p-3 rounded-xl border">
+                            <div class="md:col-span-5"><input type="text" placeholder="Nama Menu (Cth: Nasi Ayam)" class="menu-nama w-full border rounded-lg p-2 text-sm bg-white" required></div>
+                            <div class="md:col-span-2"><input type="number" placeholder="Qty" min="1" value="1" class="menu-qty w-full border rounded-lg p-2 text-sm bg-white" oninput="hitungTotalPenjualan()" required></div>
+                            <div class="md:col-span-4"><input type="number" placeholder="Harga Satuan (Rp)" min="0" class="menu-harga w-full border rounded-lg p-2 text-sm bg-white" oninput="hitungTotalPenjualan()" required></div>
+                            <div class="md:col-span-1 flex items-center justify-center"><button type="button" onclick="hapusBarisMenu(this)" class="text-red-500 font-bold hover:text-red-700 px-2 py-1">✕</button></div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center mb-6 border-b pb-4">
+                        <button type="button" onclick="tambahBarisMenu()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2 rounded-lg transition">+ Tambah Menu</button>
+                    </div>
+
+                    <h3 class="text-sm font-bold text-indigo-600 mb-2">3. Pembayaran & Catatan Tambahan</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Metode Pembayaran</label>
+                            <select id="metodePembayaran" class="w-full border rounded-lg p-2.5 text-sm bg-indigo-50 font-bold text-indigo-700 outline-none">
+                                <option value="Cash">CASH (Tunai)</option>
+                                <option value="QRIS">QRIS</option>
+                                <option value="Transfer">TRANSFER BANK</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Notes / Catatan Dapur</label>
+                            <input type="text" id="notes" placeholder="Contoh: Sambal dipisah, Jangan pedas..." class="w-full border rounded-lg p-2.5 text-sm outline-none">
+                        </div>
+                    </div>
+
+                    <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl flex justify-between items-center mb-6">
+                        <span class="text-sm font-bold text-indigo-800">TOTAL TAGIHAN:</span>
+                        <span id="grandTotalPenjualan" class="text-2xl font-black text-indigo-600">Rp 0</span>
+                    </div>
+
+                    <button type="submit" id="btnSimpanPenjualan" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition text-base shadow-lg shadow-indigo-200">SIMPAN TRANSAKSI SEKARANG</button>
+                </form>
+            </section>
+
+            <!-- INPUT PENGELUARAN (TETAP SAMA SEPERTI SEBELUMNYA) -->
+            <section id="tab-pengeluaran" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 hidden">
+                 <!-- Kode Pengeluaran di sini sama persis seperti file asli Anda, saya singkat untuk menghemat karakter, tapi secara logika utuh -->
+                 <h2 class="text-base font-bold text-slate-700 mb-4 pb-2 border-b">Catat Belanja / Pengeluaran</h2>
+                 <form id="formPengeluaran" onsubmit="submitPengeluaran(event)">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal Belanja</label>
+                            <input type="date" id="tglBelanja" required class="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Kategori Pengeluaran</label>
+                            <select id="kategoriBelanja" onchange="cekKategoriLain()" class="w-full border rounded-lg p-2.5 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="Bahan Baku">Bahan Baku</option>
+                                <option value="Operasional">Operasional</option>
+                                <option value="Packaging">Packaging</option>
+                                <option value="Lainnya">Lainnya (Isi Sendiri)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Sumber Dana</label>
+                            <select id="sumberDana" class="w-full border rounded-lg p-2.5 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="Kas Tunai">Kas Laci (Tunai)</option>
+                                <option value="Rekening Bank">Rekening Bank</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="wrapperKetLain" class="mb-4 hidden">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Keterangan Kategori Lainnya</label>
+                        <input type="text" id="keteranganLain" placeholder="Tuliskan kategori pengeluarannya..." class="w-full border rounded-lg p-2.5 text-sm">
+                    </div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-2">Daftar Barang yang Dibeli:</label>
+                    <div id="listBarangContainer" class="space-y-3 mb-4">
+                        <div class="barang-row grid grid-cols-1 md:grid-cols-12 gap-2 bg-slate-50 p-3 rounded-xl border items-center">
+                            <div class="md:col-span-5"><input type="text" placeholder="Nama Barang / Bahan (Cth: Beras)" class="barang-nama w-full border rounded-lg p-2 text-sm bg-white" required></div>
+                            <div class="md:col-span-2"><input type="number" placeholder="Qty" min="0.1" step="any" class="barang-qty w-full border rounded-lg p-2 text-sm bg-white" required></div>
+                            <div class="md:col-span-2">
+                                <select class="barang-satuan w-full border rounded-lg p-2 text-sm bg-white" required>
+                                    <option value="Kg">Kg</option><option value="Gram">Gram</option><option value="Liter">Liter</option>
+                                    <option value="Pcs">Pcs</option><option value="Bungkus">Bungkus</option><option value="Pack">Pack</option>
+                                    <option value="Box">Box</option><option value="Botol">Botol</option><option value="Ikat">Ikat</option>
+                                    <option value="Karung">Karung</option><option value="Lainnya">Lainnya</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-2"><input type="number" placeholder="Total Harga (Rp)" min="0" class="barang-harga w-full border rounded-lg p-2 text-sm bg-white" oninput="hitungTotalBelanja()" required></div>
+                            <div class="md:col-span-1 flex items-center justify-center"><button type="button" onclick="hapusBarisBarang(this)" class="text-red-500 font-bold hover:text-red-700 px-2 py-1">✕</button></div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center mb-4">
+                        <button type="button" onclick="tambahBarisBarang()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2 rounded-lg transition">+ Tambah Barang Lain</button>
+                        <div class="text-right">
+                            <span class="text-xs text-slate-500">Total Belanja: </span>
+                            <span id="grandTotalBelanja" class="text-base font-bold text-red-600">Rp 0</span>
+                        </div>
+                    </div>
+                    <button type="submit" id="btnSimpanPengeluaran" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl transition text-sm">Simpan Data Pengeluaran</button>
+                </form>
+            </section>
+
+            <!-- DASHBOARD (DIUPDATE DENGAN CASH/QRIS/TF) -->
+            <section id="tab-dashboard" class="space-y-4 hidden">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Filter Bulan</label>
+                        <div class="flex gap-2">
+                            <select id="filterBulan" class="w-full border rounded-lg p-2 text-sm bg-white">
+                                <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
+                                <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
+                                <option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option>
+                                <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+                            </select>
+                            <select id="filterTahun" class="w-24 border rounded-lg p-2 text-sm bg-white">
+                                <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Atau Rentang Tanggal</label>
+                        <div class="flex items-center gap-1">
+                            <input type="date" id="filterStart" class="w-full border rounded-lg p-1.5 text-xs">
+                            <span class="text-xs text-slate-400">s/d</span>
+                            <input type="date" id="filterEnd" class="w-full border rounded-lg p-1.5 text-xs">
+                        </div>
+                    </div>
+                    <div>
+                        <button onclick="loadDashboardData()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2 rounded-lg text-sm transition">Terapkan Filter</button>
+                    </div>
+                </div>
+
+                <!-- KARTU SUMMARY UTAMA -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl shadow-sm">
+                        <p class="text-xs font-bold text-emerald-700 uppercase tracking-wider">Gross Revenue (Pendapatan)</p>
+                        <h3 id="lblPendapatan" class="text-2xl font-black text-emerald-800 mt-1">Rp 0</h3>
+                    </div>
+                    <div class="bg-rose-50 border border-rose-200 p-4 rounded-2xl shadow-sm">
+                        <p class="text-xs font-bold text-rose-700 uppercase tracking-wider">Total Pengeluaran</p>
+                        <h3 id="lblPengeluaran" class="text-2xl font-black text-rose-800 mt-1">Rp 0</h3>
+                    </div>
+                    <div class="bg-indigo-600 border border-indigo-700 p-4 rounded-2xl shadow-md text-white">
+                        <p class="text-xs font-bold text-indigo-100 uppercase tracking-wider">Net Profit (Keuntungan)</p>
+                        <h3 id="lblKeuntungan" class="text-2xl font-black mt-1">Rp 0</h3>
+                    </div>
+                </div>
+
+                <!-- RINCIAN METODE PEMBAYARAN (BARU) -->
+                <h3 class="text-sm font-bold text-slate-700 px-1 mt-4 mb-2">Rincian Pendapatan (Untuk Cocokin Saat Closing)</h3>
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="bg-white border border-slate-200 p-3 rounded-xl shadow-sm text-center">
+                        <div class="text-xs font-semibold text-slate-500 mb-1">Uang Laci (Cash)</div>
+                        <div id="lblCash" class="text-sm font-bold text-slate-800">Rp 0</div>
+                    </div>
+                    <div class="bg-white border border-slate-200 p-3 rounded-xl shadow-sm text-center">
+                        <div class="text-xs font-semibold text-slate-500 mb-1">Mutasi QRIS</div>
+                        <div id="lblQris" class="text-sm font-bold text-slate-800">Rp 0</div>
+                    </div>
+                    <div class="bg-white border border-slate-200 p-3 rounded-xl shadow-sm text-center">
+                        <div class="text-xs font-semibold text-slate-500 mb-1">Mutasi Transfer</div>
+                        <div id="lblTransfer" class="text-sm font-bold text-slate-800">Rp 0</div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <h4 class="text-sm font-bold text-slate-700 mb-3">Grafik Perbandingan Keuangan</h4>
+                    <div class="relative h-64 w-full"><canvas id="financialChart"></canvas></div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <h4 class="text-sm font-bold text-slate-700 mb-3">🏆 Menu Terlaris</h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-700 border-b">
+                                    <th class="p-2.5">Rank</th><th class="p-2.5">Nama Menu</th>
+                                    <th class="p-2.5 text-center">Terjual</th><th class="p-2.5 text-right">Pendapatan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelTopMenuBody">
+                                <tr><td colspan="4" class="p-4 text-center text-slate-400 italic">Memuat data...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                        <h4 class="text-sm font-bold text-slate-700 mb-3">Penjualan Terbaru</h4>
+                        <div id="tableRecentPenjualan" class="space-y-2 text-xs"><p class="text-slate-400 italic">Memuat data...</p></div>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                        <h4 class="text-sm font-bold text-slate-700 mb-3">Pengeluaran Terbaru</h4>
+                        <div id="tableRecentPengeluaran" class="space-y-2 text-xs"><p class="text-slate-400 italic">Memuat data...</p></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CATATAN KESELURUHAN -->
+            <section id="tab-keseluruhan" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 hidden space-y-4">
+                 <!-- Kode Riwayat sama persis seperti file asli Anda -->
+                 <h2 class="text-base font-bold text-slate-700 pb-2 border-b">Catatan & Riwayat Keseluruhan</h2>
+                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end bg-slate-50 p-3 rounded-xl border">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Transaksi</label>
+                        <select id="filterAllJenis" class="w-full border rounded-lg p-2 text-sm bg-white">
+                            <option value="semua">Semua</option><option value="Pendapatan">Pendapatan Saja</option><option value="Pengeluaran">Pengeluaran Saja</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Filter Bulan</label>
+                        <div class="flex gap-2">
+                            <select id="filterAllBulan" class="w-full border rounded-lg p-2 text-sm bg-white">
+                                <option value="semua">Semua Bulan</option>
+                                <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
+                                <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
+                                <option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option>
+                                <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+                            </select>
+                            <select id="filterAllTahun" class="w-24 border rounded-lg p-2 text-sm bg-white">
+                                <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <button onclick="loadCatatanKeseluruhan()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg text-sm transition">Tampilkan Data</button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 border-b">
+                                <th class="p-2.5">Tanggal</th><th class="p-2.5">Jenis</th><th class="p-2.5">Keterangan</th><th class="p-2.5">Info</th><th class="p-2.5 text-right">Nominal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelKeseluruhanBody">
+                            <tr><td colspan="5" class="p-4 text-center text-slate-400 italic">Silakan klik "Tampilkan Data".</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- JAVASCRIPT LOGIKA KASIR & FETCH API -->
+    <script>
+        const PASSWORD_BENAR = "dyah06";
+        let financialChartInstance = null;
+
+        window.addEventListener("DOMContentLoaded", () => {
+            if(sessionStorage.getItem("isLoggedIn") === "true") bukaAplikasi();
+        });
+
+        function cekPassword(e) {
+            e.preventDefault();
+            const pass = document.getElementById("inputPassword").value;
+            if(pass === PASSWORD_BENAR) {
+                sessionStorage.setItem("isLoggedIn", "true");
+                bukaAplikasi();
+            } else {
+                document.getElementById("errorMsg").classList.remove("hidden");
+                document.getElementById("inputPassword").value = "";
+            }
+        }
+
+        function bukaAplikasi() {
+            document.getElementById("loginScreen").classList.add("hidden");
+            document.getElementById("mainApp").classList.remove("hidden");
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById("tglPenjualan").value = today;
+            document.getElementById("tglBelanja").value = today;
+            document.getElementById("filterBulan").value = new Date().getMonth() + 1;
+            document.getElementById("filterAllBulan").value = new Date().getMonth() + 1;
+            loadDashboardData();
+        }
+
+        function logout() {
+            sessionStorage.removeItem("isLoggedIn");
+            location.reload();
+        }
+
+        function showToast(pesan) {
+            const toast = document.getElementById("toastNotif");
+            document.getElementById("toastText").innerText = pesan;
+            toast.classList.remove("translate-y-[-200%]");
+            toast.classList.add("translate-y-0");
+            setTimeout(() => {
+                toast.classList.remove("translate-y-0");
+                toast.classList.add("translate-y-[-200%]");
+            }, 2000);
+        }
+
+        function switchTab(tab) {
+            ['penjualan', 'pengeluaran', 'dashboard', 'keseluruhan'].forEach(t => {
+                document.getElementById("tab-" + t).classList.add("hidden");
+                document.getElementById("btn-" + t).className = "flex-1 py-2 text-xs md:text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-100 transition";
+            });
+            document.getElementById("tab-" + tab).classList.remove("hidden");
+            document.getElementById("btn-" + tab).className = "flex-1 py-2 text-xs md:text-sm font-semibold rounded-lg bg-indigo-600 text-white transition";
+            if(tab === 'dashboard') loadDashboardData();
+            if(tab === 'keseluruhan') loadCatatanKeseluruhan();
+        }
+
+        function tambahBarisMenu() {
+            const container = document.getElementById("listMenuContainer");
+            const newRow = document.createElement("div");
+            newRow.className = "menu-row grid grid-cols-1 md:grid-cols-12 gap-2 bg-slate-50 p-3 rounded-xl border";
+            newRow.innerHTML = `
+                <div class="md:col-span-5"><input type="text" placeholder="Nama Menu" class="menu-nama w-full border rounded-lg p-2 text-sm bg-white" required></div>
+                <div class="md:col-span-2"><input type="number" placeholder="Qty" min="1" value="1" class="menu-qty w-full border rounded-lg p-2 text-sm bg-white" oninput="hitungTotalPenjualan()" required></div>
+                <div class="md:col-span-4"><input type="number" placeholder="Harga Satuan (Rp)" min="0" class="menu-harga w-full border rounded-lg p-2 text-sm bg-white" oninput="hitungTotalPenjualan()" required></div>
+                <div class="md:col-span-1 flex items-center justify-center"><button type="button" onclick="hapusBarisMenu(this)" class="text-red-500 font-bold px-2 py-1">✕</button></div>
+            `;
+            container.appendChild(newRow);
+        }
+
+        function hapusBarisMenu(btn) {
+            if(document.querySelectorAll(".menu-row").length > 1) { btn.closest(".menu-row").remove(); hitungTotalPenjualan(); }
+            else { alert("Minimal harus ada 1 menu transaksi."); }
+        }
+
+        function hitungTotalPenjualan() {
+            let total = 0;
+            document.querySelectorAll(".menu-row").forEach(row => {
+                total += (Number(row.querySelector(".menu-qty").value) || 0) * (Number(row.querySelector(".menu-harga").value) || 0);
+            });
+            document.getElementById("grandTotalPenjualan").innerText = formatRupiah(total);
+        }
+
+        function submitPenjualan(e) {
+            e.preventDefault();
+            const btn = document.getElementById("btnSimpanPenjualan");
+            btn.innerText = "Mencatat Transaksi..."; btn.disabled = true;
+
+            const data = {
+                action: "simpanPenjualan",
+                tanggal: document.getElementById("tglPenjualan").value,
+                namaPembeli: document.getElementById("pembeli").value,
+                noHp: document.getElementById("noHp").value,
+                jenisPengiriman: document.getElementById("jenisPengiriman").value,
+                alamat: document.getElementById("alamat").value,
+                metodePembayaran: document.getElementById("metodePembayaran").value,
+                notes: document.getElementById("notes").value,
+                items: []
+            };
+
+            document.querySelectorAll(".menu-row").forEach(row => {
+                data.items.push({
+                    namaMenu: row.querySelector(".menu-nama").value,
+                    qty: Number(row.querySelector(".menu-qty").value),
+                    hargaSatuan: Number(row.querySelector(".menu-harga").value)
+                });
+            });
+
+            fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(data) })
+            .then(res => res.json())
+            .then(res => {
+                showToast("Transaksi Penjualan Berhasil Disimpan!");
+                document.getElementById("formPenjualan").reset();
+                document.getElementById("tglPenjualan").value = new Date().toISOString().split('T')[0];
+                document.getElementById("listMenuContainer").innerHTML = `
+                    <div class="menu-row grid grid-cols-1 md:grid-cols-12 gap-2 bg-slate-50 p-3 rounded-xl border">
+                        <div class="md:col-span-5"><input type="text" placeholder="Nama Menu (Cth: Nasi Ayam)" class="menu-nama w-full border rounded-lg p-2 text-sm bg-white" required></div>
+                        <div class="md:col-span-2"><input type="number" placeholder="Qty" min="1" value="1" class="menu-qty w-full border rounded-lg p-2 text-sm bg-white" oninput="hitungTotalPenjualan()" required></div>
+                        <div class="md:col-span-4"><input type="number" placeholder="Harga Satuan (Rp)" min="0" class="menu-harga w-full border rounded-lg p-2 text-sm bg-white" oninput="hitungTotalPenjualan()" required></div>
+                        <div class="md:col-span-1 flex items-center justify-center"><button type="button" onclick="hapusBarisMenu(this)" class="text-red-500 font-bold hover:text-red-700 px-2 py-1">✕</button></div>
+                    </div>`;
+                hitungTotalPenjualan();
+                btn.innerText = "SIMPAN TRANSAKSI SEKARANG"; btn.disabled = false;
+            })
+            .catch(err => { alert("Gagal menyimpan: " + err); btn.innerText = "SIMPAN TRANSAKSI SEKARANG"; btn.disabled = false; });
+        }
+
+        // --- FUNGSI PENGELUARAN TETAP SAMA ---
+        function cekKategoriLain() {
+            const kat = document.getElementById("kategoriBelanja").value;
+            const wrapper = document.getElementById("wrapperKetLain");
+            if(kat === "Lainnya") { wrapper.classList.remove("hidden"); document.getElementById("keteranganLain").required = true; }
+            else { wrapper.classList.add("hidden"); document.getElementById("keteranganLain").required = false; }
+        }
+
+        function tambahBarisBarang() {
+            const container = document.getElementById("listBarangContainer");
+            const newRow = document.createElement("div");
+            newRow.className = "barang-row grid grid-cols-1 md:grid-cols-12 gap-2 bg-slate-50 p-3 rounded-xl border items-center";
+            newRow.innerHTML = `
+                <div class="md:col-span-5"><input type="text" placeholder="Nama Barang" class="barang-nama w-full border rounded-lg p-2 text-sm bg-white" required></div>
+                <div class="md:col-span-2"><input type="number" placeholder="Qty" min="0.1" step="any" class="barang-qty w-full border rounded-lg p-2 text-sm bg-white" required></div>
+                <div class="md:col-span-2">
+                    <select class="barang-satuan w-full border rounded-lg p-2 text-sm bg-white" required>
+                        <option value="Kg">Kg</option><option value="Gram">Gram</option><option value="Liter">Liter</option><option value="Pcs">Pcs</option><option value="Bungkus">Bungkus</option><option value="Pack">Pack</option><option value="Box">Box</option><option value="Botol">Botol</option><option value="Ikat">Ikat</option><option value="Karung">Karung</option><option value="Lainnya">Lainnya</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2"><input type="number" placeholder="Total Harga (Rp)" min="0" class="barang-harga w-full border rounded-lg p-2 text-sm bg-white" oninput="hitungTotalBelanja()" required></div>
+                <div class="md:col-span-1 flex items-center justify-center"><button type="button" onclick="hapusBarisBarang(this)" class="text-red-500 font-bold px-2 py-1">✕</button></div>
+            `;
+            container.appendChild(newRow);
+        }
+
+        function hapusBarisBarang(btn) {
+            if(document.querySelectorAll(".barang-row").length > 1) { btn.closest(".barang-row").remove(); hitungTotalBelanja(); }
+            else { alert("Minimal harus ada 1 item belanja."); }
+        }
+
+        function hitungTotalBelanja() {
+            let total = 0;
+            document.querySelectorAll(".barang-row").forEach(row => { total += Number(row.querySelector(".barang-harga").value) || 0; });
+            document.getElementById("grandTotalBelanja").innerText = formatRupiah(total);
+        }
+
+        function submitPengeluaran(e) {
+            e.preventDefault();
+            const btn = document.getElementById("btnSimpanPengeluaran");
+            btn.innerText = "Menyimpan..."; btn.disabled = true;
+
+            const data = {
+                action: "simpanPengeluaran",
+                idBelanja: "BLJ-" + Date.now(),
+                tanggal: document.getElementById("tglBelanja").value,
+                kategori: document.getElementById("kategoriBelanja").value,
+                sumberDana: document.getElementById("sumberDana").value,
+                keteranganLain: document.getElementById("keteranganLain").value,
+                items: []
+            };
+
+            document.querySelectorAll(".barang-row").forEach(row => {
+                data.items.push({
+                    namaBarang: row.querySelector(".barang-nama").value,
+                    qty: row.querySelector(".barang-qty").value,
+                    satuan: row.querySelector(".barang-satuan").value,
+                    totalHarga: Number(row.querySelector(".barang-harga").value)
+                });
+            });
+
+            fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(data) })
+            .then(res => res.json())
+            .then(res => {
+                showToast("Catatan Pengeluaran Berhasil Disimpan!");
+                document.getElementById("formPengeluaran").reset();
+                document.getElementById("tglBelanja").value = new Date().toISOString().split('T')[0];
+                document.getElementById("listBarangContainer").innerHTML = `
+                    <div class="barang-row grid grid-cols-1 md:grid-cols-12 gap-2 bg-slate-50 p-3 rounded-xl border items-center">
+                        <div class="md:col-span-5"><input type="text" placeholder="Nama Barang / Bahan" class="barang-nama w-full border rounded-lg p-2 text-sm bg-white" required></div>
+                        <div class="md:col-span-2"><input type="number" placeholder="Qty" min="0.1" step="any" class="barang-qty w-full border rounded-lg p-2 text-sm bg-white" required></div>
+                        <div class="md:col-span-2">
+                            <select class="barang-satuan w-full border rounded-lg p-2 text-sm bg-white" required>
+                                <option value="Kg">Kg</option><option value="Gram">Gram</option><option value="Liter">Liter</option><option value="Pcs">Pcs</option><option value="Bungkus">Bungkus</option><option value="Pack">Pack</option><option value="Box">Box</option><option value="Botol">Botol</option><option value="Ikat">Ikat</option><option value="Karung">Karung</option><option value="Lainnya">Lainnya</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2"><input type="number" placeholder="Total Harga (Rp)" min="0" class="barang-harga w-full border rounded-lg p-2 text-sm bg-white" oninput="hitungTotalBelanja()" required></div>
+                        <div class="md:col-span-1 flex items-center justify-center"><button type="button" onclick="hapusBarisBarang(this)" class="text-red-500 font-bold px-2 py-1">✕</button></div>
+                    </div>`;
+                cekKategoriLain(); hitungTotalBelanja();
+                btn.innerText = "Simpan Data Pengeluaran"; btn.disabled = false;
+            })
+            .catch(err => { alert("Gagal menyimpan: " + err); btn.innerText = "Simpan Data Pengeluaran"; btn.disabled = false; });
+        }
+
+        // --- FETCH DASHBOARD BARU (Dengan Rincian Pembayaran) ---
+        function loadDashboardData() {
+            const month = document.getElementById("filterBulan").value;
+            const year = document.getElementById("filterTahun").value;
+            const startDate = document.getElementById("filterStart").value;
+            const endDate = document.getElementById("filterEnd").value;
+
+            let url = `${WEB_APP_URL}?action=getDashboardData&month=${month}&year=${year}`;
+            if(startDate && endDate) url = `${WEB_APP_URL}?action=getDashboardData&startDate=${startDate}&endDate=${endDate}`;
+
+            fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === "success") {
+                    document.getElementById("lblPendapatan").innerText = formatRupiah(data.summary.pendapatan);
+                    document.getElementById("lblPengeluaran").innerText = formatRupiah(data.summary.pengeluaran);
+                    document.getElementById("lblKeuntungan").innerText = formatRupiah(data.summary.keuntungan);
+                    
+                    // Render rincian pembayaran
+                    document.getElementById("lblCash").innerText = formatRupiah(data.summary.totalCash || 0);
+                    document.getElementById("lblQris").innerText = formatRupiah(data.summary.totalQRIS || 0);
+                    document.getElementById("lblTransfer").innerText = formatRupiah(data.summary.totalTransfer || 0);
+
+                    renderChart(data.summary.pendapatan, data.summary.pengeluaran, data.summary.keuntungan);
+                    renderTopMenus(data.topMenus);
+                    renderRecentPenjualan(data.recentPenjualan);
+                    renderRecentPengeluaran(data.recentPengeluaran);
+                }
+            })
+            .catch(err => console.error("Gagal memuat dashboard", err));
+        }
+
+        function renderChart(pendapatan, pengeluaran, keuntungan) {
+            const ctx = document.getElementById('financialChart').getContext('2d');
+            if (financialChartInstance) financialChartInstance.destroy();
+            financialChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Pendapatan', 'Pengeluaran', 'Keuntungan Bersih'],
+                    datasets: [{ data: [pendapatan, pengeluaran, keuntungan], backgroundColor: ['#10b981', '#f43f5e', '#6366f1'], borderRadius: 8 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        function renderTopMenus(topMenus) {
+            const tbody = document.getElementById("tabelTopMenuBody");
+            if(!topMenus || topMenus.length === 0) { tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400 italic">Belum ada data.</td></tr>`; return; }
+            tbody.innerHTML = topMenus.map((m, i) => `
+                <tr class="border-b hover:bg-slate-50"><td class="p-2.5 font-bold text-indigo-600">#${i+1}</td><td class="p-2.5 font-semibold">${m.nama}</td><td class="p-2.5 text-center">${m.totalQty} porsi</td><td class="p-2.5 text-right text-emerald-600 font-semibold">${formatRupiah(m.totalPendapatan)}</td></tr>
+            `).join("");
+        }
+
+        function loadCatatanKeseluruhan() {
+            const jenis = document.getElementById("filterAllJenis").value;
+            const bulan = document.getElementById("filterAllBulan").value;
+            const tahun = document.getElementById("filterAllTahun").value;
+
+            fetch(`${WEB_APP_URL}?action=getCatatanKeseluruhan&jenis=${jenis}&bulan=${bulan}&tahun=${tahun}`)
+            .then(res => res.json())
+            .then(data => renderTabelKeseluruhan(data))
+            .catch(err => console.error("Gagal memuat catatan", err));
+        }
+
+        function renderTabelKeseluruhan(list) {
+            const tbody = document.getElementById("tabelKeseluruhanBody");
+            if(!list || list.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400 italic">Tidak ada data.</td></tr>`; return; }
+            tbody.innerHTML = list.map(item => {
+                const isP = item.tipe === "Pendapatan";
+                return `<tr class="border-b hover:bg-slate-50"><td class="p-2.5">${item.tanggal}</td><td class="p-2.5"><span class="px-2 py-1 rounded text-[10px] font-bold ${isP?'bg-emerald-100 text-emerald-800':'bg-rose-100 text-rose-800'}">${item.tipe}</span></td><td class="p-2.5">${item.keterangan}</td><td class="p-2.5 text-slate-500">${item.infoTambahan}</td><td class="p-2.5 text-right ${isP?'text-emerald-600':'text-rose-600'} font-semibold">${isP?'+':'-'} ${formatRupiah(item.nominal)}</td></tr>`;
+            }).join("");
+        }
+
+        function renderRecentPenjualan(list) {
+            const container = document.getElementById("tableRecentPenjualan");
+            if(!list || list.length === 0) { container.innerHTML = `<p class="text-slate-400 italic">Belum ada.</p>`; return; }
+            container.innerHTML = list.map(trx => `<div class="bg-slate-50 p-2.5 rounded-lg border"><div class="flex justify-between font-semibold"><span>${trx.tanggal} (${trx.pembeli})</span><span class="text-indigo-600">${formatRupiah(trx.total)}</span></div><div class="text-slate-500 mt-1">Bayar: <b>${trx.metode}</b> | Menu: ${trx.items.map(i=>`${i.nama} (${i.qty}x)`).join(", ")}</div></div>`).join("");
+        }
+
+        function renderRecentPengeluaran(list) {
+            const container = document.getElementById("tableRecentPengeluaran");
+            if(!list || list.length === 0) { container.innerHTML = `<p class="text-slate-400 italic">Belum ada.</p>`; return; }
+            container.innerHTML = list.map(blj => `<div class="bg-slate-50 p-2.5 rounded-lg border"><div class="flex justify-between font-semibold"><span>${blj.tanggal} - [${blj.kategori}]</span><span class="text-rose-600">${formatRupiah(blj.total)}</span></div><div class="text-slate-500 mt-1">Sumber: <b>${blj.sumberDana}</b> | Barang: ${blj.items.map(i=>`${i.nama} (${i.qty}${i.satuan})`).join(", ")}</div></div>`).join("");
+        }
+
+        function formatRupiah(angka) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(angka);
+        }
+    </script>
+</body>
+</html>
